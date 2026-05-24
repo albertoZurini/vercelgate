@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/khanakia/vercelgate/pkg/jsonupdate"
+	"github.com/khanakia/vercelgate/pkg/logger"
 	"github.com/khanakia/vercelgate/pkg/utils"
 
 	"github.com/adrg/xdg"
@@ -18,10 +19,14 @@ var (
 )
 
 func SetAuthToken(token string) error {
+	logger.Verbose("SetAuthToken(token=%s)", logger.MaskToken(token))
+
 	filePath, err := AuthJsonFile()
 	if err != nil {
 		return err
 	}
+
+	logger.Debug("writing token to %s", filePath)
 
 	fileBytes, err := utils.OpenFile(filePath)
 	if err != nil {
@@ -43,10 +48,14 @@ func SetAuthToken(token string) error {
 }
 
 func SetCurrentTeam(teamID string) error {
+	logger.Verbose("SetCurrentTeam(teamID=%s)", teamID)
+
 	filePath, err := ConfigJsonFile()
 	if err != nil {
 		return err
 	}
+
+	logger.Debug("writing currentTeam to %s", filePath)
 
 	fileBytes, err := utils.OpenFile(filePath)
 	if err != nil {
@@ -68,10 +77,14 @@ func SetCurrentTeam(teamID string) error {
 }
 
 func DeleteCurrentTeam() error {
+	logger.Verbose("DeleteCurrentTeam()")
+
 	filePath, err := ConfigJsonFile()
 	if err != nil {
 		return err
 	}
+
+	logger.Debug("removing currentTeam from %s", filePath)
 
 	fileBytes, err := utils.OpenFile(filePath)
 	if err != nil {
@@ -93,6 +106,8 @@ func DeleteCurrentTeam() error {
 }
 
 func ParseAuthFile(path string) (*AuthConfig, error) {
+	logger.Verbose("ParseAuthFile(path=%s)", path)
+
 	fileBytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -103,6 +118,8 @@ func ParseAuthFile(path string) (*AuthConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Debug("parsed auth file, token present: %v", len(authConfig.Token) > 0)
 	return &authConfig, nil
 }
 
@@ -131,16 +148,19 @@ func GetGlobalPathConfig() (string, error) {
 
 	dirs := append(xdg.ConfigDirs, xdg.ConfigHome)
 
-	for _, datadir := range dirs {
+	logger.Debug("searching for vercel config dir in %d candidate path(s)", len(dirs))
 
+	for _, datadir := range dirs {
 		dirPath := filepath.Join(datadir, dirname)
-		// fmt.Println(dirPath)
+		logger.Verbose("GetGlobalPathConfig: checking %s", dirPath)
+
 		info, err := os.Stat(dirPath)
 		if err != nil {
 			continue
 		}
 
 		if info.IsDir() {
+			logger.Debug("found vercel config dir: %s", dirPath)
 			return dirPath, nil
 		}
 	}

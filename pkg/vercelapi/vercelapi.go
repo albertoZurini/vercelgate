@@ -7,14 +7,19 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/khanakia/vercelgate/pkg/logger"
 )
 
 func GetUser(token string) (*User, error) {
+	logger.Verbose("GetUser(token=%s)", logger.MaskToken(token))
+
 	if len(token) == 0 {
 		return nil, errors.New("token is empty")
 	}
 
 	url := "https://api.vercel.com/v2/user"
+	logger.Debug("GET %s", url)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -32,12 +37,12 @@ func GetUser(token string) (*User, error) {
 	}
 	defer res.Body.Close()
 
+	logger.Debug("GET %s -> %d", url, res.StatusCode)
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.New("unable to fetch package info")
 	}
-
-	// fmt.Println(string(body))
 
 	var record *GetUserResponse
 	err = json.Unmarshal(body, &record)
@@ -46,18 +51,23 @@ func GetUser(token string) (*User, error) {
 	}
 
 	if len(record.Error.Code) > 0 {
+		logger.Debug("API error: code=%s message=%s", record.Error.Code, record.Error.Message)
 		return nil, errors.New(record.Error.Message)
 	}
 
+	logger.Debug("got user: id=%s email=%s username=%s", record.User.ID, record.User.Email, record.User.Username)
 	return &record.User, nil
 }
 
 func GetTeams(token string) ([]Team, error) {
+	logger.Verbose("GetTeams(token=%s)", logger.MaskToken(token))
+
 	if len(token) == 0 {
 		return nil, errors.New("token is empty")
 	}
 
 	url := "https://api.vercel.com/v2/teams"
+	logger.Debug("GET %s", url)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -75,12 +85,12 @@ func GetTeams(token string) ([]Team, error) {
 	}
 	defer res.Body.Close()
 
+	logger.Debug("GET %s -> %d", url, res.StatusCode)
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.New("unable to fetch package info")
 	}
-
-	// fmt.Println(string(body))
 
 	var record *GetTeamsResponse
 	err = json.Unmarshal(body, &record)
@@ -89,9 +99,11 @@ func GetTeams(token string) ([]Team, error) {
 	}
 
 	if len(record.Error.Code) > 0 {
+		logger.Debug("API error: code=%s message=%s", record.Error.Code, record.Error.Message)
 		return nil, errors.New(record.Error.Message)
 	}
 
+	logger.Debug("got %d team(s)", len(record.Teams))
 	return record.Teams, nil
 }
 

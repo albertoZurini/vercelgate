@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/khanakia/vercelgate/gen/ent"
+	"github.com/khanakia/vercelgate/pkg/logger"
 	"github.com/khanakia/vercelgate/pkg/vercelutil"
 )
 
@@ -15,7 +16,10 @@ func Client() *ent.Client {
 		return client
 	}
 
-	dataSourceName := fmt.Sprintf("file:%s?cache=shared&_fk=1&_journal_mode=wal", DBfilePath())
+	dbPath := DBfilePath()
+	dataSourceName := fmt.Sprintf("file:%s?cache=shared&_fk=1&_journal_mode=wal", dbPath)
+
+	logger.Debug("opening SQLite connection: %s", dbPath)
 
 	var err error
 	client, err = ent.Open("sqlite3", dataSourceName)
@@ -27,5 +31,7 @@ func Client() *ent.Client {
 
 func DBfilePath() string {
 	globalPath, _ := vercelutil.GetGlobalPathConfig()
-	return globalPath + "/vercelgate.db"
+	path := globalPath + "/vercelgate.db"
+	logger.Verbose("DBfilePath() = %s", path)
+	return path
 }
