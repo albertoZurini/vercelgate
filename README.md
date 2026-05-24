@@ -10,7 +10,7 @@ vercelgate offers a practical solution by enabling users to switch between multi
 
 ## Installation
 
-```go
+```sh
 go install github.com/khanakia/vercelgate@main
 ```
 
@@ -19,8 +19,6 @@ go install github.com/khanakia/vercelgate@main
 ```sh
 brew tap khanakia/vercelgate
 brew install vercelgate
-vercelgate --help
-vercelgate init
 ```
 
 ## Ubuntu
@@ -29,134 +27,143 @@ For ubuntu vercel configuration is stored in `~/.local/share/com.vercel.cli/` in
 
 Make sure you create a Symlink: `mkdir -p ~/.config/com.vercel.cli && ln -s ~/.local/share/com.vercel.cli/* ~/.config/com.vercel.cli/`
 
+---
 
-## Usage
-> [!IMPORTANT]  
-> Make sure you first login with `vercel login` with any default email account so all the necessary configs gets created by vercel cli tool before using vercelgate
+## Getting started
 
-
-To begin using **vercelgate**, first perform the initialization:
+### Step 1 — Initialize (once)
 
 ```bash
 vercelgate init
 ```
 
-This only needs to be done once. For further guidance on how to use **vercelgate** efficiently, use the help command:
+This sets up the local database. Only needs to be done once.
 
+### Step 2 — Sync your accounts
 
-```bash
-vercelgate --help
-```
+#### Already logged in to Vercel
 
-This will display a list of available commands and options to tailor your account management experience.
-
-## Commands
-
-### Version
-
-```bash
-vercelgate --version
-```
-
-Displays the current version of vercelgate installed on your system.
-
-### Initialize
-
-```bash
-vercelgate init
-```
-
-Initializes vercelgate for first-time use. This command sets up the necessary configuration and database.
-
-### Sync
+If you are already logged in via the Vercel CLI, sync your current session immediately — no logout needed:
 
 ```bash
 vercelgate sync
 ```
 
-Syncs your current logged-in Vercel account with vercelgate.
+#### Adding a second (or third) account
 
-### New Account
+`vercelgate new` clears Vercel's local auth file so you can log in as a different user. Your already-synced accounts are **not** affected — they remain stored in vercelgate's database.
 
 ```bash
-vercelgate new
+vercelgate new    # clears current Vercel session
+vercel login      # log in as the new account
+vercelgate sync   # save the new account to vercelgate
 ```
 
-Clears the current Vercel account configuration. After running this, you can add a new Vercel account using `vercel login` and then run `vercelgate sync` to add it to vercelgate.
+Repeat this for every additional account you want to manage.
 
-### Switch Account
+> [!NOTE]
+> `vercelgate new` does **not** log you out from the Vercel platform. It only clears the local credential file so the Vercel CLI can accept a new `vercel login`.
+
+### Step 3 — Switch between accounts
 
 ```bash
 vercelgate switch
 ```
 
-Displays a list of all synced Vercel accounts, allowing you to choose which account to set as active.
+Use the arrow keys to pick which account to activate. The selected account's token is written back into Vercel's local auth file, so all subsequent `vercel` commands run under that account.
 
-### Switch Team
+To also switch the active team at the same time:
 
 ```bash
 vercelgate switchteam
 ```
 
-Shows a list of all synced Vercel accounts and their teams, allowing you to select a team to set as the current team.
+---
 
-### Show Config Path
+## Commands
 
-```bash
-vercelgate path
-```
+### `vercelgate init`
 
-Displays the Vercel global configuration path where settings and authentication data are stored.
+Initializes vercelgate for first-time use. Sets up the local SQLite database.
 
-### Reset
+### `vercelgate sync`
 
-```bash
-vercelgate reset
-```
+Reads the token from the current Vercel CLI session and saves (or updates) that account in vercelgate's database, together with all its teams.
 
-Resets all synced Vercel accounts from vercelgate.
+### `vercelgate new`
 
-## Example
+Clears the current Vercel CLI session so you can run `vercel login` to authenticate as a different account. Run `vercelgate sync` afterwards to add the new account.
+
+### `vercelgate switch`
+
+Displays all synced accounts and lets you select one to activate.
+
+### `vercelgate switchteam`
+
+Displays all synced accounts and their teams, and lets you select both an account and a team to activate.
+
+### `vercelgate reset`
+
+Removes all synced accounts from vercelgate's database. Does not affect the Vercel CLI itself.
+
+### `vercelgate path`
+
+Prints the Vercel global configuration directory that vercelgate is reading from. Useful for troubleshooting.
+
+### `vercelgate --version`
+
+Prints the installed version of vercelgate.
+
+### `vercelgate --debug`
+
+Enables detailed logging of every operation (paths resolved, API calls made, DB writes).
+
+### `vercelgate --debug --verbose`
+
+Enables all debug output plus per-function argument logging. Tokens are masked in the output.
+
+---
+
+## Example: adding a second account
 
 ```sh
-➜ ✗ vercelgate switch
-Use the arrow keys to navigate: ↓ ↑ → ←
-? Select Account:
-  ▸ Jane Doe (jandoe@gmail.com)
+# Already logged in as jane@example.com — sync her first
+➜ vercelgate sync
+synced successfully
 
-Switched to user Jane Doe
-
-
-➜ ✗ vercelgate new
+# Now add a second account
+➜ vercelgate new
 you can now add new account using `vercel login` and then run `vercelgate sync` again
 
-
-➜ ✗ vercel login
+➜ vercel login
 Vercel CLI 34.0.0
 ? Log in to Vercel Continue with Email
 ? Enter your email address: dummy@gmail.com
 We sent an email to dummy@gmail.com. Please follow the steps provided inside it and make sure the security code matches Eager Bornean Orang-utan.
 > Success! Email authentication complete for dummy@gmail.com
 
-
-➜ ✗ vercelgate sync
+➜ vercelgate sync
 synced successfully
 
-➜ ✗ vercelgate switch
+# Switch between them at any time
+➜ vercelgate switch
 Use the arrow keys to navigate: ↓ ↑ → ←
 ? Select Account:
-  ▸ Jane Doe (jandoe@gmail.com)
+  ▸ Jane Doe (jane@example.com)
     dummy (dummy@gmail.com)
 
+Switched to user Jane Doe
 ```
+
+---
 
 ## Features
 
-- **Simple Account Switching**: Quickly switch between different Vercel accounts without logging out
-- **Support for Multiple Accounts**: Manage multiple personal and hobby plan accounts
-- **Team Management**: Switch between teams within accounts
-- **Configuration Access**: View global configuration paths for troubleshooting
-- **Command-Line Interface**: Easy-to-use CLI for all operations
+- **Simple account switching** — switch between Vercel accounts without logging out
+- **Multiple accounts** — manage as many personal / hobby plan accounts as you need
+- **Team management** — switch the active team alongside the account
+- **Debug logging** — `--debug` and `--debug --verbose` flags for troubleshooting
+- **Configuration path** — `vercelgate path` shows where config is being read from
 
 ## TODO
 
