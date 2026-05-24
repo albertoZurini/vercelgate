@@ -11,6 +11,9 @@ import (
 	"github.com/khanakia/vercelgate/pkg/logger"
 )
 
+// baseURL is the Vercel API root; overridden in tests.
+var baseURL = "https://api.vercel.com"
+
 func GetUser(token string) (*User, error) {
 	logger.Verbose("GetUser(token=%s)", logger.MaskToken(token))
 
@@ -18,7 +21,7 @@ func GetUser(token string) (*User, error) {
 		return nil, errors.New("token is empty")
 	}
 
-	url := "https://api.vercel.com/v2/user"
+	url := baseURL + "/v2/user"
 	logger.Debug("GET %s", url)
 
 	client := &http.Client{}
@@ -66,7 +69,7 @@ func GetTeams(token string) ([]Team, error) {
 		return nil, errors.New("token is empty")
 	}
 
-	url := "https://api.vercel.com/v2/teams"
+	url := baseURL + "/v2/teams"
 	logger.Debug("GET %s", url)
 
 	client := &http.Client{}

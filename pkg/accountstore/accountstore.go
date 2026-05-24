@@ -11,17 +11,26 @@ import (
 
 const fileName = "vercelgate_accounts.json"
 
+// dirOverride is set via ACCOUNTSTORE_DIR env var; used in tests to avoid
+// requiring a real Vercel config directory.
+func resolveDir() (string, error) {
+	if d := os.Getenv("ACCOUNTSTORE_DIR"); d != "" {
+		return d, nil
+	}
+	return vercelutil.GetGlobalPathConfig()
+}
+
 type Account struct {
 	Name string          `json:"name"`
 	Data json.RawMessage `json:"data"`
 }
 
 func FilePath() (string, error) {
-	globalPath, err := vercelutil.GetGlobalPathConfig()
+	dir, err := resolveDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(globalPath, fileName), nil
+	return filepath.Join(dir, fileName), nil
 }
 
 func Load() ([]Account, error) {

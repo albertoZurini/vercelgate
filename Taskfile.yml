@@ -16,6 +16,11 @@ tasks:
     cmds:
       - go run ./cmd/dbmigrate
 
+  test:
+    desc: run all tests
+    cmds:
+      - go test ./...
+
   tag:
     desc: tag the current commit
     cmds:

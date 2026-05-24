@@ -1,22 +1,21 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"os"
 )
 
 func OpenFile(filepath string) ([]byte, error) {
 	info, err := os.Stat(filepath)
-
-	if errors.Is(err, os.ErrNotExist) || info.IsDir() {
-		fmt.Println("file does not exist")
+	if err != nil {
 		return nil, err
+	}
+	if info.IsDir() {
+		return nil, fmt.Errorf("%s is a directory", filepath)
 	}
 
 	fileBytes, err := os.ReadFile(filepath)
 	if err != nil {
-		fmt.Println("unable to read file")
 		return nil, err
 	}
 
@@ -25,17 +24,13 @@ func OpenFile(filepath string) ([]byte, error) {
 
 func IsFileExists(filepath string) error {
 	info, err := os.Stat(filepath)
-
-	if errors.Is(err, os.ErrNotExist) || info.IsDir() {
-		// fmt.Println("file does not exist")
+	if err != nil {
 		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("%s is a directory", filepath)
 	}
 
 	_, err = os.ReadFile(filepath)
-	if err != nil {
-		// fmt.Println("unable to read file")
-		return err
-	}
-
-	return nil
+	return err
 }
