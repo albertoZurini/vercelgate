@@ -17,7 +17,8 @@ func Client() *ent.Client {
 
 	dataSourceName := fmt.Sprintf("file:%s?cache=shared&_fk=1&_journal_mode=wal", DBfilePath())
 
-	client, err := ent.Open("sqlite3", dataSourceName)
+	var err error
+	client, err = ent.Open("sqlite3", dataSourceName)
 	if err != nil {
 		log.Fatalf("failed opening connection to sqlite: %v", err)
 	}
