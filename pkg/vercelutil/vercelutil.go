@@ -3,7 +3,6 @@ package vercelutil
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -43,7 +42,6 @@ func DeleteCurrentTeam() error {
 
 	fileBytes, err := utils.OpenFile(filePath)
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
@@ -53,7 +51,6 @@ func DeleteCurrentTeam() error {
 
 	err = os.WriteFile(filePath, []byte(jsonupd.String()), 0644)
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 

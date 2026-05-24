@@ -3,7 +3,6 @@ package vercelapi
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -28,14 +27,12 @@ func GetUser(token string) (*User, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -74,14 +71,12 @@ func GetTeams(token string) ([]Team, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	defer res.Body.Close()
