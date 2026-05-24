@@ -1,6 +1,7 @@
 package vercelfn
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -25,8 +26,8 @@ func SyncAuthJson() error {
 		return err
 	}
 
-	authConfig, err := vercelutil.ParseAuthFile(authJsonFile)
-	if err != nil {
+	var authConfig vercelutil.AuthConfig
+	if err := json.Unmarshal(rawBytes, &authConfig); err != nil {
 		return err
 	}
 
