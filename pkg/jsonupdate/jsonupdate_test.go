@@ -38,7 +38,7 @@ func TestSet_Chaining(t *testing.T) {
 
 func TestDelete_RemovesKey(t *testing.T) {
 	u := jsonupdate.NewJsonUpdate(`{"token":"x","currentTeam":"t_123"}`)
-	u.Deleete("currentTeam")
+	u.Delete("currentTeam")
 	got := u.String()
 	if strings.Contains(got, "currentTeam") {
 		t.Errorf("key should be removed, got: %s", got)
@@ -50,7 +50,7 @@ func TestDelete_RemovesKey(t *testing.T) {
 
 func TestDelete_MissingKey(t *testing.T) {
 	u := jsonupdate.NewJsonUpdate(`{"token":"x"}`)
-	u.Deleete("nonexistent")
+	u.Delete("nonexistent")
 	if u.String() != `{"token":"x"}` {
 		t.Errorf("deleting missing key should be no-op, got: %s", u.String())
 	}

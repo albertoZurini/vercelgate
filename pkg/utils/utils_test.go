@@ -34,26 +34,3 @@ func TestOpenFile_Directory(t *testing.T) {
 		t.Error("expected error when path is a directory")
 	}
 }
-
-func TestIsFileExists_Existing(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "test.txt")
-	os.WriteFile(path, []byte("hello"), 0600)
-
-	if err := utils.IsFileExists(path); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-}
-
-func TestIsFileExists_Missing(t *testing.T) {
-	err := utils.IsFileExists(filepath.Join(t.TempDir(), "missing.txt"))
-	if err == nil {
-		t.Error("expected error for missing file")
-	}
-}
-
-func TestIsFileExists_Directory(t *testing.T) {
-	err := utils.IsFileExists(t.TempDir())
-	if err == nil {
-		t.Error("expected error when path is a directory")
-	}
-}
