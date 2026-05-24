@@ -6,10 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/albertoZurini/vercelgate/pkg/vercelutil"
+	"github.com/albertoZurini/vcx/pkg/vercelutil"
 )
 
-const fileName = "vercelgate_accounts.json"
+const fileName = "vcx_accounts.json"
 
 // dirOverride is set via ACCOUNTSTORE_DIR env var; used in tests to avoid
 // requiring a real Vercel config directory.

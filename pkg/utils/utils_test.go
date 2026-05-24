@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/albertoZurini/vercelgate/pkg/utils"
+	"github.com/albertoZurini/vcx/pkg/utils"
 )
 
 func TestOpenFile_Existing(t *testing.T) {

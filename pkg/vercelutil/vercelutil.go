@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/albertoZurini/vercelgate/pkg/jsonupdate"
-	"github.com/albertoZurini/vercelgate/pkg/logger"
-	"github.com/albertoZurini/vercelgate/pkg/utils"
+	"github.com/albertoZurini/vcx/pkg/jsonupdate"
+	"github.com/albertoZurini/vcx/pkg/logger"
+	"github.com/albertoZurini/vcx/pkg/utils"
 
 	"github.com/adrg/xdg"
 )

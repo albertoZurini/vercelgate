@@ -22,10 +22,10 @@ builds:
     goos:
       - darwin
 
-    binary: "vercelgate"
+    binary: "vcx"
 
   - id: linux
-    binary: vercelgate
+    binary: vcx
     goos:
       - linux
     env:
@@ -66,11 +66,11 @@ release:
   footer: >-
 
     ---
-    released by vercelgate
+    released by vcx
 
 brews:
-  - name: vercelgate
-    homepage: https://github.com/khanakia/vercelgate
+  - name: vcx
+    homepage: https://github.com/albertoZurini/vcx
     repository:
-      owner: khanakia
-      name: homebrew-vercelgate
+      owner: albertoZurini
+      name: homebrew-vcx

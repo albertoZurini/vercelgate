@@ -1,4 +1,4 @@
-module github.com/albertoZurini/vercelgate
+module github.com/albertoZurini/vcx
 
 go 1.23.0
 

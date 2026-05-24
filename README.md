@@ -1,31 +1,33 @@
-## vercelgate
+# vcx
 
-vercelgate is a command-line tool designed to streamline the process of managing multiple Vercel client accounts. It eliminates the need for repetitive login and logout actions, allowing users to switch between accounts and teams seamlessly.
+Switch between multiple Vercel accounts without re-logging in — like `kubectx` but for Vercel.
 
-## WHY
+## Why
 
-As developers, we often encounter situations where clients provide access to their Vercel accounts without subscribing to a Team plan. The Vercel CLI restricts usage to one account at a time, requiring you to log out from one account before logging into another. This can be a significant inconvenience, especially since the Vercel CLI does not natively support multi-account management, likely encouraging users to opt for a paid Team plan.
-
-vercelgate offers a practical solution by enabling users to switch between multiple personal Vercel hobby plan accounts without the need to upgrade to a Vercel Pro Team plan.
+As developers, we often work with clients who share their Vercel accounts instead of subscribing to a Team plan. The Vercel CLI only supports one active account at a time, requiring a full logout/login cycle to switch. vcx eliminates that friction by storing each account's credentials locally and swapping them instantly.
 
 ## Installation
 
 ```sh
-go install github.com/khanakia/vercelgate@main
+go install github.com/albertoZurini/vcx@main
 ```
 
-### Install with Homebrew:
+### Homebrew
 
 ```sh
-brew tap khanakia/vercelgate
-brew install vercelgate
+brew tap albertoZurini/vcx
+brew install vcx
 ```
 
 ## Ubuntu
 
-For ubuntu vercel configuration is stored in `~/.local/share/com.vercel.cli/` instead of `~/.config/com.vercel.cli/`
+On Ubuntu, Vercel stores its config in `~/.local/share/com.vercel.cli/` instead of `~/.config/com.vercel.cli/`.
 
-Make sure you create a Symlink: `mkdir -p ~/.config/com.vercel.cli && ln -s ~/.local/share/com.vercel.cli/* ~/.config/com.vercel.cli/`
+Create a symlink so vcx can find it:
+
+```sh
+mkdir -p ~/.config/com.vercel.cli && ln -s ~/.local/share/com.vercel.cli/* ~/.config/com.vercel.cli/
+```
 
 ---
 
@@ -34,93 +36,53 @@ Make sure you create a Symlink: `mkdir -p ~/.config/com.vercel.cli && ln -s ~/.l
 ### Step 1 — Initialize (once)
 
 ```bash
-vercelgate init
+vcx init
 ```
 
-This sets up the local database. Only needs to be done once.
+Creates `vcx_accounts.json` in your Vercel config directory.
 
 ### Step 2 — Sync your accounts
 
-#### Already logged in to Vercel
-
-If you are already logged in via the Vercel CLI, sync your current session immediately — no logout needed:
+**Already logged in to Vercel:**
 
 ```bash
-vercelgate sync
+vcx sync
 ```
 
-#### Adding a second (or third) account
-
-`vercelgate new` clears Vercel's local auth file so you can log in as a different user. Your already-synced accounts are **not** affected — they remain stored in vercelgate's database.
+**Adding a second (or third) account:**
 
 ```bash
-vercelgate new    # clears current Vercel session
-vercel login      # log in as the new account
-vercelgate sync   # save the new account to vercelgate
+vcx new        # clears current Vercel session
+vercel login   # log in as the new account
+vcx sync       # save the new account to vcx
 ```
-
-Repeat this for every additional account you want to manage.
 
 > [!NOTE]
-> `vercelgate new` does **not** log you out from the Vercel platform. It only clears the local credential file so the Vercel CLI can accept a new `vercel login`.
+> `vcx new` does **not** log you out from the Vercel platform. It only clears the local credential file so the Vercel CLI can accept a new `vercel login`.
 
 ### Step 3 — Switch between accounts
 
 ```bash
-vercelgate switch
+vcx switch
 ```
 
-Use the arrow keys to pick which account to activate. The selected account's token is written back into Vercel's local auth file, so all subsequent `vercel` commands run under that account.
-
-To also switch the active team at the same time:
-
-```bash
-vercelgate switchteam
-```
+Use the arrow keys to pick an account. The selected account's full `auth.json` is restored, so all subsequent `vercel` commands run under that account.
 
 ---
 
 ## Commands
 
-### `vercelgate init`
-
-Initializes vercelgate for first-time use. Sets up the local SQLite database.
-
-### `vercelgate sync`
-
-Reads the token from the current Vercel CLI session and saves (or updates) that account in vercelgate's database, together with all its teams.
-
-### `vercelgate new`
-
-Clears the current Vercel CLI session so you can run `vercel login` to authenticate as a different account. Run `vercelgate sync` afterwards to add the new account.
-
-### `vercelgate switch`
-
-Displays all synced accounts and lets you select one to activate.
-
-### `vercelgate switchteam`
-
-Displays all synced accounts and their teams, and lets you select both an account and a team to activate.
-
-### `vercelgate reset`
-
-Removes all synced accounts from vercelgate's database. Does not affect the Vercel CLI itself.
-
-### `vercelgate path`
-
-Prints the Vercel global configuration directory that vercelgate is reading from. Useful for troubleshooting.
-
-### `vercelgate --version`
-
-Prints the installed version of vercelgate.
-
-### `vercelgate --debug`
-
-Enables detailed logging of every operation (paths resolved, API calls made, DB writes).
-
-### `vercelgate --debug --verbose`
-
-Enables all debug output plus per-function argument logging. Tokens are masked in the output.
+| Command | Description |
+|---------|-------------|
+| `vcx init` | Create the accounts file (run once) |
+| `vcx sync` | Save the currently logged-in Vercel account to vcx |
+| `vcx switch` | Interactively select an account to activate |
+| `vcx new` | Clear the current session so you can `vercel login` as someone else |
+| `vcx reset` | Wipe all stored accounts |
+| `vcx path` | Print the Vercel config directory vcx is reading from |
+| `vcx --version` | Print the installed version |
+| `vcx --debug` | Enable detailed logging |
+| `vcx --debug --verbose` | Debug + per-function argument logging (tokens masked) |
 
 ---
 
@@ -128,43 +90,36 @@ Enables all debug output plus per-function argument logging. Tokens are masked i
 
 ```sh
 # Already logged in as jane@example.com — sync her first
-➜ vercelgate sync
+➜ vcx sync
 synced successfully
 
-# Now add a second account
-➜ vercelgate new
-you can now add new account using `vercel login` and then run `vercelgate sync` again
+# Add a second account
+➜ vcx new
+you can now add new account using `vercel login` and then run `vcx sync` again
 
 ➜ vercel login
-Vercel CLI 34.0.0
-? Log in to Vercel Continue with Email
-? Enter your email address: dummy@gmail.com
-We sent an email to dummy@gmail.com. Please follow the steps provided inside it and make sure the security code matches Eager Bornean Orang-utan.
 > Success! Email authentication complete for dummy@gmail.com
 
-➜ vercelgate sync
+➜ vcx sync
 synced successfully
 
 # Switch between them at any time
-➜ vercelgate switch
-Use the arrow keys to navigate: ↓ ↑ → ←
+➜ vcx switch
 ? Select Account:
   ▸ Jane Doe (jane@example.com)
     dummy (dummy@gmail.com)
 
-Switched to user Jane Doe
+Switched to Jane Doe
 ```
 
 ---
 
-## Features
+## Credits
 
-- **Simple account switching** — switch between Vercel accounts without logging out
-- **Multiple accounts** — manage as many personal / hobby plan accounts as you need
-- **Team management** — switch the active team alongside the account
-- **Debug logging** — `--debug` and `--debug --verbose` flags for troubleshooting
-- **Configuration path** — `vercelgate path` shows where config is being read from
+vcx is a fork of [vercelgate](https://github.com/khanakia/vercelgate) by [@khanakia](https://github.com/khanakia), which provided the original boilerplate for multi-account Vercel credential management. vcx replaces the SQLite/Ent ORM backend with a plain JSON file and drops the team-switching command.
+
+---
 
 ## TODO
 
-- [ ] Auto detect Ubuntu config file path
+- [ ] Auto-detect Ubuntu config file path

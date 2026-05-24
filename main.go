@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/albertoZurini/vercelgate/pkg/accountstore"
-	"github.com/albertoZurini/vercelgate/pkg/logger"
-	"github.com/albertoZurini/vercelgate/pkg/vercelfn"
-	"github.com/albertoZurini/vercelgate/pkg/vercelutil"
+	"github.com/albertoZurini/vcx/pkg/accountstore"
+	"github.com/albertoZurini/vcx/pkg/logger"
+	"github.com/albertoZurini/vcx/pkg/vercelfn"
+	"github.com/albertoZurini/vcx/pkg/vercelutil"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -39,10 +39,10 @@ func main() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:     "vercelgate",
+	Use:     "vcx",
 	Version: version,
-	Short:   "Make vercel cli more powerful by adding the ability to switch between multiple accounts.",
-	Long:    `You can switch between multiple accounts without having to relogin and logout.`,
+	Short:   "Switch between multiple Vercel accounts without re-logging in.",
+	Long:    `vcx lets you manage multiple Vercel accounts and switch between them instantly.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.DebugEnabled = debugFlag
 		// --verbose implies --debug
@@ -54,7 +54,7 @@ var rootCmd = &cobra.Command{
 		logger.Verbose("verbose logging enabled (function arguments will be logged)")
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Run command `vercelgate --help` for more information`")
+		fmt.Println("Run `vcx --help` for more information")
 	},
 }
 
@@ -80,7 +80,7 @@ var initCmd = &cobra.Command{
 			log.Fatal(err)
 			return
 		}
-		fmt.Println("vercelgate initialized successfully")
+		fmt.Println("vcx initialized successfully")
 	},
 }
 
@@ -130,7 +130,7 @@ func promptGetUser() (accountstore.Account, error) {
 	}
 
 	if len(accounts) == 0 {
-		return accountstore.Account{}, fmt.Errorf("no accounts synced yet. please sync first using `vercelgate sync`")
+		return accountstore.Account{}, fmt.Errorf("no accounts synced yet. please sync first using `vcx sync`")
 	}
 
 	items := make([]string, len(accounts))
@@ -177,13 +177,13 @@ var newCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Println("you can now add new account using `vercel login` and then run `vercelgate sync` again")
+		fmt.Println("you can now add new account using `vercel login` and then run `vcx sync` again")
 	},
 }
 
 var resetCmd = &cobra.Command{
 	Use:   "reset",
-	Short: "Reset vercelgate state and will delete all accounts",
+	Short: "Reset vcx state and will delete all accounts",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Debug("running reset command")
 		err := ResetCmd()

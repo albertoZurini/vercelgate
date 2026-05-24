@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/albertoZurini/vercelgate/pkg/accountstore"
+	"github.com/albertoZurini/vcx/pkg/accountstore"
 )
 
 func compactJSON(t *testing.T, raw json.RawMessage) string {

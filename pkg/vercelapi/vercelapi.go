@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/albertoZurini/vercelgate/pkg/logger"
+	"github.com/albertoZurini/vcx/pkg/logger"
 )
 
 // baseURL is the Vercel API root; overridden in tests.
