@@ -21,16 +21,3 @@ func OpenFile(filepath string) ([]byte, error) {
 
 	return fileBytes, nil
 }
-
-func IsFileExists(filepath string) error {
-	info, err := os.Stat(filepath)
-	if err != nil {
-		return err
-	}
-	if info.IsDir() {
-		return fmt.Errorf("%s is a directory", filepath)
-	}
-
-	_, err = os.ReadFile(filepath)
-	return err
-}

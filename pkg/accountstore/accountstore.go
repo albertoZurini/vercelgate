@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/khanakia/vercelgate/pkg/vercelutil"
+	"github.com/albertoZurini/vercelgate/pkg/vercelutil"
 )
 
 const fileName = "vercelgate_accounts.json"

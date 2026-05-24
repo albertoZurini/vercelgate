@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/khanakia/vercelgate/pkg/accountstore"
-	"github.com/khanakia/vercelgate/pkg/logger"
-	"github.com/khanakia/vercelgate/pkg/vercelapi"
-	"github.com/khanakia/vercelgate/pkg/vercelutil"
+	"github.com/albertoZurini/vercelgate/pkg/accountstore"
+	"github.com/albertoZurini/vercelgate/pkg/logger"
+	"github.com/albertoZurini/vercelgate/pkg/vercelapi"
+	"github.com/albertoZurini/vercelgate/pkg/vercelutil"
 )
 
 func SyncAuthJson() error {

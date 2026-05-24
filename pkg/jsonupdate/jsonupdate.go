@@ -28,7 +28,7 @@ func (s *JsonUpdate) Set(key, value string) *JsonUpdate {
 	return s
 }
 
-func (s *JsonUpdate) Deleete(path string) *JsonUpdate {
+func (s *JsonUpdate) Delete(path string) *JsonUpdate {
 	s.jsondata, _ = sjson.Delete(s.jsondata, path)
 	return s
 }

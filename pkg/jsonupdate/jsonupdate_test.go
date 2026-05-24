@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/khanakia/vercelgate/pkg/jsonupdate"
+	"github.com/albertoZurini/vercelgate/pkg/jsonupdate"
 )
 
 func TestSet_ExistingKey(t *testing.T) {

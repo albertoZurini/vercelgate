@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/khanakia/vercelgate/pkg/accountstore"
-	"github.com/khanakia/vercelgate/pkg/logger"
-	"github.com/khanakia/vercelgate/pkg/vercelfn"
-	"github.com/khanakia/vercelgate/pkg/vercelutil"
+	"github.com/albertoZurini/vercelgate/pkg/accountstore"
+	"github.com/albertoZurini/vercelgate/pkg/logger"
+	"github.com/albertoZurini/vercelgate/pkg/vercelfn"
+	"github.com/albertoZurini/vercelgate/pkg/vercelutil"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -42,7 +42,7 @@ var rootCmd = &cobra.Command{
 	Use:     "vercelgate",
 	Version: version,
 	Short:   "Make vercel cli more powerful by adding the ability to switch between multiple accounts.",
-	Long:    `You can swithc between multiple accounts without having relogin and logout.`,
+	Long:    `You can switch between multiple accounts without having to relogin and logout.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.DebugEnabled = debugFlag
 		// --verbose implies --debug
@@ -86,7 +86,7 @@ var initCmd = &cobra.Command{
 
 var switchCmd = &cobra.Command{
 	Use:   "switch",
-	Short: "Switch between account",
+	Short: "Switch between accounts",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Debug("running switch command")
 		err := SwitchCmd()

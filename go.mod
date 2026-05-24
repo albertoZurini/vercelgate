@@ -1,4 +1,4 @@
-module github.com/khanakia/vercelgate
+module github.com/albertoZurini/vercelgate
 
 go 1.23.0
 

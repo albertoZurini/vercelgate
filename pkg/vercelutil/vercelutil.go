@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/khanakia/vercelgate/pkg/jsonupdate"
-	"github.com/khanakia/vercelgate/pkg/logger"
-	"github.com/khanakia/vercelgate/pkg/utils"
+	"github.com/albertoZurini/vercelgate/pkg/jsonupdate"
+	"github.com/albertoZurini/vercelgate/pkg/logger"
+	"github.com/albertoZurini/vercelgate/pkg/utils"
 
 	"github.com/adrg/xdg"
 )
@@ -47,9 +47,9 @@ func DeleteCurrentTeam() error {
 
 	jsonupd := jsonupdate.NewJsonUpdate(string(fileBytes))
 
-	jsonupd.Deleete("currentTeam")
+	jsonupd.Delete("currentTeam")
 
-	err = os.WriteFile(filePath, []byte(jsonupd.String()), 0644)
+	err = os.WriteFile(filePath, []byte(jsonupd.Pretty()), 0644)
 	if err != nil {
 		return err
 	}
