@@ -1,25 +1,17 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
-	"github.com/khanakia/vercelgate/gen/ent"
-	"github.com/khanakia/vercelgate/pkg/constants"
-	"github.com/khanakia/vercelgate/pkg/entcfn"
-	"github.com/khanakia/vercelgate/pkg/entdb"
+	"github.com/khanakia/vercelgate/pkg/accountstore"
 	"github.com/khanakia/vercelgate/pkg/logger"
-	"github.com/khanakia/vercelgate/pkg/utils"
 	"github.com/khanakia/vercelgate/pkg/vercelfn"
 	"github.com/khanakia/vercelgate/pkg/vercelutil"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var version = "dev"
@@ -71,26 +63,21 @@ var initCmd = &cobra.Command{
 	Short: "Run this command very first time",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Debug("running init command")
-		globalPath, err := vercelutil.GetGlobalPathConfig()
+		path, err := accountstore.FilePath()
 		if err != nil {
 			log.Fatal(err)
-
 			return
 		}
 
-		dbPath := filepath.Join(globalPath, constants.DB_FILE_NAME)
-		logger.Debug("checking for existing DB at %s", dbPath)
-		err = utils.IsFileExists(dbPath)
-		if err == nil {
+		logger.Debug("checking for existing accounts file at %s", path)
+		if _, err := os.Stat(path); err == nil {
 			fmt.Println("was initialized already")
 			return
 		}
 
-		logger.Debug("running schema migration")
-		err = entcfn.Migrate()
-		if err != nil {
+		logger.Debug("creating empty accounts file")
+		if err := accountstore.Clear(); err != nil {
 			log.Fatal(err)
-
 			return
 		}
 		fmt.Println("vercelgate initialized successfully")
@@ -115,62 +102,53 @@ var switchCmd = &cobra.Command{
 func SwitchCmd() error {
 	logger.Verbose("SwitchCmd()")
 
-	user, err := promptGetUser()
+	account, err := promptGetUser()
 	if err != nil {
 		return err
 	}
 
-	logger.Debug("selected user: %s (%s)", user.Name, user.Email)
+	logger.Debug("selected account: %s", account.Name)
 
-	err = vercelutil.SetAuthToken(user.Token)
-	if err != nil {
+	if err := vercelutil.RestoreAuthJson(account.Data); err != nil {
 		return err
 	}
 
-	fmt.Printf("Switched to user %s\n", user.Name)
+	fmt.Printf("Switched to %s\n", account.Name)
 
 	logger.Debug("clearing currentTeam")
-	vercelutil.DeleteCurrentTeam()
+	if err := vercelutil.DeleteCurrentTeam(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func promptGetUser() (*ent.User, error) {
-	ctx := context.Background()
-
-	users, err := entdb.Client().User.Query().All(ctx)
-
+func promptGetUser() (accountstore.Account, error) {
+	accounts, err := accountstore.All()
 	if err != nil {
-		return nil, err
+		return accountstore.Account{}, err
 	}
 
-	if len(users) == 0 {
-		return nil, fmt.Errorf("no accounts synced yet. please sync first using `vercelgate sync`")
+	if len(accounts) == 0 {
+		return accountstore.Account{}, fmt.Errorf("no accounts synced yet. please sync first using `vercelgate sync`")
 	}
 
-	usersList := []string{}
-
-	for _, user := range users {
-		name := user.Name
-		if len(name) == 0 {
-			name = user.Username
-		}
-		usersList = append(usersList, fmt.Sprintf("%s (%s)", name, user.Email))
+	items := make([]string, len(accounts))
+	for i, a := range accounts {
+		items[i] = a.Name
 	}
 
 	prompt := promptui.Select{
 		Label: "Select Account",
-		Items: usersList,
+		Items: items,
 	}
 
 	index, _, err := prompt.Run()
-
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		return nil, err
+		return accountstore.Account{}, err
 	}
 
-	return users[index], nil
+	return accounts[index], nil
 }
 
 var syncCmd = &cobra.Command{
@@ -247,16 +225,6 @@ func NewAccountCmd() error {
 }
 
 func ResetCmd() error {
-	logger.Debug("deleting all users and teams from DB")
-	ctx := context.Background()
-	_, err := entdb.Client().User.Delete().Exec(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = entdb.Client().Team.Delete().Exec(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	logger.Debug("clearing accounts store")
+	return accountstore.Clear()
 }

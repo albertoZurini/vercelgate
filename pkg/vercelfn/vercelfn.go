@@ -1,15 +1,15 @@
 package vercelfn
 
 import (
-	"context"
+	"fmt"
+	"os"
 
-	"github.com/khanakia/vercelgate/pkg/entdb"
+	"github.com/khanakia/vercelgate/pkg/accountstore"
 	"github.com/khanakia/vercelgate/pkg/logger"
 	"github.com/khanakia/vercelgate/pkg/vercelapi"
 	"github.com/khanakia/vercelgate/pkg/vercelutil"
 )
 
-// Sycn user and team to database from auth.json file
 func SyncAuthJson() error {
 	logger.Verbose("SyncAuthJson()")
 
@@ -19,6 +19,11 @@ func SyncAuthJson() error {
 	}
 
 	logger.Debug("reading auth file: %s", authJsonFile)
+
+	rawBytes, err := os.ReadFile(authJsonFile)
+	if err != nil {
+		return err
+	}
 
 	authConfig, err := vercelutil.ParseAuthFile(authJsonFile)
 	if err != nil {
@@ -31,42 +36,12 @@ func SyncAuthJson() error {
 		return err
 	}
 
-	ctx := context.Background()
-
-	logger.Debug("upserting user id=%s email=%s", user.ID, user.Email)
-	userID, err := entdb.Client().User.Create().
-		SetID(user.ID).
-		SetEmail(user.Email).
-		SetName(user.Name).
-		SetUsername(user.Username).
-		SetToken(authConfig.Token).
-		OnConflict().
-		UpdateNewValues().
-		ID(ctx)
-	if err != nil {
-		return err
+	displayName := user.Username
+	if len(user.Name) > 0 {
+		displayName = user.Name
 	}
+	name := fmt.Sprintf("%s (%s)", displayName, user.Email)
 
-	logger.Debug("fetching teams from Vercel API")
-	teams, err := vercelapi.GetTeams(authConfig.Token)
-	if err != nil {
-		return err
-	}
-
-	for _, team := range teams {
-		logger.Debug("upserting team id=%s name=%s slug=%s", team.ID, team.Name, team.Slug)
-		_, err := entdb.Client().Team.Create().
-			SetID(team.ID).
-			SetUserID(userID).
-			SetName(team.Name).
-			SetSlug(team.Slug).
-			OnConflict().
-			UpdateNewValues().
-			ID(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	logger.Debug("storing account: %s", name)
+	return accountstore.AddOrUpdate(name, rawBytes)
 }

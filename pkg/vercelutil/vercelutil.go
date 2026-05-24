@@ -18,33 +18,16 @@ var (
 	authJsonFileName = "auth.json"
 )
 
-func SetAuthToken(token string) error {
-	logger.Verbose("SetAuthToken(token=%s)", logger.MaskToken(token))
+func RestoreAuthJson(data []byte) error {
+	logger.Verbose("RestoreAuthJson()")
 
 	filePath, err := AuthJsonFile()
 	if err != nil {
 		return err
 	}
 
-	logger.Debug("writing token to %s", filePath)
-
-	fileBytes, err := utils.OpenFile(filePath)
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
-	}
-
-	jsonupd := jsonupdate.NewJsonUpdate(string(fileBytes))
-
-	jsonupd.Set("token", token)
-
-	err = os.WriteFile(filePath, []byte(jsonupd.String()), 0644)
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
-	}
-
-	return nil
+	logger.Debug("restoring auth.json at %s", filePath)
+	return os.WriteFile(filePath, data, 0600)
 }
 
 
