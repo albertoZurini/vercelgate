@@ -14,6 +14,8 @@ import (
 // baseURL is the Vercel API root; overridden in tests.
 var baseURL = "https://api.vercel.com"
 
+var httpClient = &http.Client{Timeout: 15 * time.Second}
+
 func GetUser(token string) (*User, error) {
 	logger.Verbose("GetUser(token=%s)", logger.MaskToken(token))
 
@@ -24,16 +26,14 @@ func GetUser(token string) (*User, error) {
 	url := baseURL + "/v2/user"
 	logger.Debug("GET %s", url)
 
-	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 
-	res, err := client.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -72,16 +72,14 @@ func GetTeams(token string) ([]Team, error) {
 	url := baseURL + "/v2/teams"
 	logger.Debug("GET %s", url)
 
-	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 
-	res, err := client.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err

@@ -1,7 +1,7 @@
 # Security & Code Audit
 
 Audit date: 2026-05-24  
-Audited ref: `main` (3909183)
+Audited ref: `main` (c604d22)
 
 Severity labels: **Critical** · **High** · **Medium** · **Low** · **Info**
 
@@ -33,61 +33,17 @@ if info.IsDir() {
 
 ---
 
-### 2. Auth file written world-readable — **High**
+### 2. No HTTP timeout on Vercel API calls — **Medium**
 
-**File:** `pkg/vercelutil/vercelutil.go:41`
+**File:** `pkg/vercelapi/vercelapi.go:24`
 
-```go
-err = os.WriteFile(filePath, []byte(jsonupd.String()), 0644)
-```
-
-`auth.json` contains the Vercel auth token and is written with permission `0644`, making it readable by every user on the system. Token files should use `0600`:
-
-```go
-err = os.WriteFile(filePath, []byte(jsonupd.String()), 0600)
-```
-
----
-
-### 3. Auth token stored in plaintext SQLite — **Medium**
-
-**File:** `schema/user.go:21`
-
-```go
-field.String("token").Optional(),
-```
-
-The Vercel auth token is persisted unencrypted in `vercelgate.db`. Anyone who can read that file (same user, shared machine, backup leaks) obtains valid credentials. The database should either encrypt the token field or use the OS keychain (e.g. via `github.com/zalando/go-keyring`).
-
----
-
-### 4. `DeleteCurrentTeam` error silently dropped — **Medium**
-
-**File:** `main.go:165`
-
-```go
-vercelutil.DeleteCurrentTeam()
-```
-
-The return value is ignored. If removing `currentTeam` from `config.json` fails, the user silently ends up with a mismatched state: the token was already switched to the new account, but the old team ID is still active in `config.json`. The Vercel CLI will then make API calls to a team that may not belong to the new account.
-
-```go
-if err := vercelutil.DeleteCurrentTeam(); err != nil {
-    return err
-}
-```
-
----
-
-### 5. No HTTP timeout on Vercel API calls — **Medium**
-
-**File:** `pkg/vercelapi/vercelapi.go:24`, `:72`
+`GetUser` creates an HTTP client with no timeout:
 
 ```go
 client := &http.Client{}
 ```
 
-Both `GetUser` and `GetTeams` create HTTP clients with no timeout. A slow or unresponsive Vercel API will hang `vercelgate sync` indefinitely. Add a timeout:
+A slow or unresponsive Vercel API will hang `vercelgate sync` indefinitely. Add a timeout:
 
 ```go
 client := &http.Client{Timeout: 15 * time.Second}
@@ -95,86 +51,97 @@ client := &http.Client{Timeout: 15 * time.Second}
 
 ---
 
-### 6. `GetTeams` does not paginate — **Medium**
+### 3. Duplicate error output — **Medium**
 
-**File:** `pkg/vercelapi/vercelapi.go:62-108`
+**Files:** `pkg/vercelutil/vercelutil.go:46,56`, `pkg/vercelapi/vercelapi.go:28,35`
 
-The Vercel `/v2/teams` API returns a `pagination` object with a `next` cursor. The code only fetches the first page and discards the cursor. Users who belong to more than one page of teams (rare, but possible for large organisations) will have their later teams silently missing.
+Several functions print the error with `fmt.Println(err.Error())` *and* return it. The caller then also prints it (via `log.Fatal`), resulting in the same message appearing twice. Remove the intermediate `fmt.Println` calls and let only the top-level handler display the error.
 
----
-
-### 7. Silently wrong DB path when config dir is missing — **Medium**
-
-**File:** `pkg/entdb/entdb.go:33`
-
+In `vercelutil.DeleteCurrentTeam`:
 ```go
-globalPath, _ := vercelutil.GetGlobalPathConfig()
-path := globalPath + "/vercelgate.db"
+fileBytes, err := utils.OpenFile(filePath)
+if err != nil {
+    fmt.Println(err.Error()) // remove this line
+    return err
+}
 ```
 
-If `GetGlobalPathConfig()` returns an error (e.g. Vercel CLI was never installed), `globalPath` is an empty string and the resulting path is `/vercelgate.db` — a file at the filesystem root. This will either fail silently or create a DB in an unexpected location. The error should be surfaced:
-
+In `vercelapi.GetUser` and `GetTeams`:
 ```go
-globalPath, err := vercelutil.GetGlobalPathConfig()
 if err != nil {
-    log.Fatalf("vercel config directory not found: %v", err)
+    fmt.Println(err) // remove this line
+    return nil, err
 }
 ```
 
 ---
 
-### 8. `Migrate()` calls `log.Fatalf` before `return err` — **Low**
+### 4. `SyncAuthJson` reads `auth.json` twice — **Low**
 
-**File:** `pkg/entcfn/entcfn.go:21-22`
+**File:** `pkg/vercelfn/vercelfn.go:23,28`
 
-```go
-log.Fatalf("failed creating schema resources: %v", err)
-return err  // unreachable
-```
-
-`log.Fatalf` calls `os.Exit(1)`, so `return err` is dead code. The function signature promises to return an error to the caller, but it never does — it terminates the process. This prevents any caller from handling the error gracefully. Replace with `return fmt.Errorf(...)` and let the caller (in `main.go`) call `log.Fatal`.
-
----
-
-### 9. Duplicate error output — **Low**
-
-**Files:** `pkg/vercelutil/vercelutil.go:33,44`, `pkg/vercelapi/vercelapi.go:28,35`
-
-Several functions print the error with `fmt.Println(err.Error())` *and* return it. The caller then also prints it (via `log.Fatal`), resulting in the same message appearing twice. Remove the intermediate `fmt.Println` calls and let only the top-level handler display the error.
-
----
-
-### 10. `Migrate()` closes singleton DB client — **Low**
-
-**File:** `pkg/entcfn/entcfn.go:25`
+The function calls `os.ReadFile(authJsonFile)` directly to capture the raw bytes, then calls `vercelutil.ParseAuthFile(authJsonFile)` which also calls `os.ReadFile` internally. The file is read twice for no reason:
 
 ```go
-client.Close()
+rawBytes, err := os.ReadFile(authJsonFile)   // read #1
+...
+authConfig, err := vercelutil.ParseAuthFile(authJsonFile)  // read #2 inside
 ```
 
-`entcfn.Migrate()` obtains the singleton client from `entdb.Client()`, then closes it. The `entdb` package variable is still non-nil after this, so subsequent calls to `entdb.Client()` return a closed handle. In practice the `init` command exits immediately after `Migrate()`, so this does not cause a runtime failure today, but it is a latent bug that would surface if any code were added after the migration step.
+Fix: parse `rawBytes` directly instead of calling `ParseAuthFile`:
+
+```go
+rawBytes, err := os.ReadFile(authJsonFile)
+if err != nil {
+    return err
+}
+var authConfig vercelutil.AuthConfig
+if err := json.Unmarshal(rawBytes, &authConfig); err != nil {
+    return err
+}
+```
 
 ---
 
-### 11. `SetCurrentTeam` and `DeleteCurrentTeam` write inconsistent JSON formatting — **Low**
+### 5. `GetTeams` and related types are dead code — **Low**
 
-**Files:** `pkg/vercelutil/vercelutil.go:70`, `:99`
+**File:** `pkg/vercelapi/vercelapi.go:62-150`
 
-`SetCurrentTeam` writes `jsonupd.Pretty()` (indented), while `DeleteCurrentTeam` writes `jsonupd.String()` (minified). This means the formatting of `config.json` changes depending on which operation ran last. Both should use the same format; `Pretty()` is preferred since Vercel CLI writes indented JSON.
+`GetTeams()`, `Team`, `GetTeamsResponse`, and `Pagination` are exported but nothing in the codebase calls them after the `switchteam` removal. Dead exported code adds maintenance surface and misleads future readers into thinking teams are still a first-class concept. Remove them, or move to an internal `_archive` if there is any intention to reuse later.
 
 ---
 
-### 12. Typo in `jsonupdate.Deleete` — **Info**
+### 6. Misspelled public method `Deleete` — **Low**
 
-**Files:** `pkg/jsonupdate/jsonupdate.go:31`, `pkg/vercelutil/vercelutil.go:97`
+**Files:** `pkg/jsonupdate/jsonupdate.go:31`, `pkg/vercelutil/vercelutil.go:52`
 
 The method is named `Deleete` (double `e`) in both the definition and the call site, so the code compiles and runs correctly. However, it is a public method with a misspelled name that would break any future caller relying on the expected name `Delete`. Rename to `Delete` in both files.
 
 ---
 
-### 13. Typo in root command description — **Info**
+### 7. `utils.IsFileExists` is dead code — **Info**
 
-**File:** `main.go:55`
+**File:** `pkg/utils/utils.go:26`
+
+`IsFileExists` is not called from anywhere in the current codebase. It was previously used to check for the SQLite DB file in `initCmd`, but `initCmd` now uses `os.Stat` directly. The function can be removed, along with the duplicate `os.ReadFile` call inside it (checking existence by reading the entire file is wasteful).
+
+---
+
+### 8. `DeleteCurrentTeam` reformats `config.json` from pretty to minified — **Info**
+
+**File:** `pkg/vercelutil/vercelutil.go:54`
+
+```go
+err = os.WriteFile(filePath, []byte(jsonupd.String()), 0644)
+```
+
+The Vercel CLI writes `config.json` with indented formatting. `jsonupd.String()` produces minified (single-line) JSON. When vercelgate removes `currentTeam`, the file silently changes format, creating noisy diffs and confusing users who inspect the file. Use `jsonupd.Pretty()` to preserve the expected formatting.
+
+---
+
+### 9. Typo in root command description — **Info**
+
+**File:** `main.go:45`
 
 ```go
 Long: `You can swithc between multiple accounts...`,
@@ -184,9 +151,9 @@ Long: `You can swithc between multiple accounts...`,
 
 ---
 
-### 14. `switch` command short description is ungrammatical — **Info**
+### 10. `switch` command short description is ungrammatical — **Info**
 
-**File:** `main.go:104`
+**File:** `main.go:89`
 
 ```go
 Short: "Switch between account",
@@ -196,7 +163,7 @@ Should be "Switch between accounts".
 
 ---
 
-### 15. Module path does not match repository owner — **Info**
+### 11. Module path does not match repository owner — **Info**
 
 **File:** `go.mod:1`
 
@@ -204,7 +171,22 @@ Should be "Switch between accounts".
 module github.com/khanakia/vercelgate
 ```
 
-The git remote and commit author are `albertoZurini`, not `khanakia`. This mismatch suggests the project was cloned/forked but the module path was not updated. While this works locally, it means `go get github.com/albertoZurini/vercelgate` would not resolve correctly, and import paths in the source embed the original author's namespace.
+The git remote and commit author are `albertoZurini`, not `khanakia`. This mismatch suggests the project was forked but the module path was not updated. While this works locally, `go get github.com/albertoZurini/vercelgate` would not resolve correctly, and import paths in the source embed the original author's namespace.
+
+---
+
+## Resolved Since Previous Audit (3909183)
+
+| # | Was | Resolution |
+|---|-----|------------|
+| 2 | Auth file written world-readable (0644) | `RestoreAuthJson` now uses `0600`; `SetAuthToken` removed |
+| 3 | Auth token stored in plaintext SQLite | SQLite removed; token stored in `vercelgate_accounts.json` at `0600` |
+| 4 | `DeleteCurrentTeam` error silently dropped | `main.go:119` now checks and propagates the error |
+| 6 | `GetTeams` does not paginate | Function is now unreachable (see finding 5 above) |
+| 7 | Silently wrong DB path when config dir missing | `pkg/entdb` removed entirely |
+| 8 | `Migrate()` calls `log.Fatalf` before `return err` | `pkg/entcfn` removed entirely |
+| 10 | `Migrate()` closes singleton DB client | `pkg/entcfn` removed entirely |
+| 11 | Inconsistent JSON formatting (Pretty vs String) | `SetCurrentTeam` removed; residual minification issue noted in finding 8 |
 
 ---
 
@@ -213,17 +195,13 @@ The git remote and commit author are `albertoZurini`, not `khanakia`. This misma
 | # | Severity | File | Issue |
 |---|----------|------|-------|
 | 1 | **High** | `pkg/utils/utils.go:12,29` | Nil dereference on non-ErrNotExist stat error |
-| 2 | **High** | `pkg/vercelutil/vercelutil.go:41` | Auth file written with world-readable permissions (0644) |
-| 3 | **Medium** | `schema/user.go:21` | Auth token stored in plaintext SQLite |
-| 4 | **Medium** | `main.go:165` | Unchecked error from `DeleteCurrentTeam` |
-| 5 | **Medium** | `pkg/vercelapi/vercelapi.go:24,72` | No HTTP timeout — sync can hang indefinitely |
-| 6 | **Medium** | `pkg/vercelapi/vercelapi.go:62` | `GetTeams` fetches first page only; no pagination |
-| 7 | **Medium** | `pkg/entdb/entdb.go:33` | Silently wrong DB path when Vercel config dir missing |
-| 8 | **Low** | `pkg/entcfn/entcfn.go:21` | `log.Fatalf` makes `return err` unreachable |
-| 9 | **Low** | `vercelutil`, `vercelapi` | Errors printed twice (in function and at call site) |
-| 10 | **Low** | `pkg/entcfn/entcfn.go:25` | `Migrate()` closes singleton DB client |
-| 11 | **Low** | `pkg/vercelutil/vercelutil.go:70,99` | Inconsistent JSON formatting (Pretty vs String) |
-| 12 | **Info** | `pkg/jsonupdate/jsonupdate.go:31` | Misspelled public method name `Deleete` |
-| 13 | **Info** | `main.go:55` | Typo: `swithc` |
-| 14 | **Info** | `main.go:104` | Grammar: "between account" → "between accounts" |
-| 15 | **Info** | `go.mod:1` | Module path references original fork owner |
+| 2 | **Medium** | `pkg/vercelapi/vercelapi.go:24` | No HTTP timeout — sync can hang indefinitely |
+| 3 | **Medium** | `vercelutil:46,56` · `vercelapi:28,35` | Errors printed twice (in function and at call site) |
+| 4 | **Low** | `pkg/vercelfn/vercelfn.go:23,28` | `auth.json` read twice during sync |
+| 5 | **Low** | `pkg/vercelapi/vercelapi.go:62` | `GetTeams`, `Team`, `Pagination` are dead exported code |
+| 6 | **Low** | `pkg/jsonupdate/jsonupdate.go:31` | Misspelled public method name `Deleete` |
+| 7 | **Info** | `pkg/utils/utils.go:26` | `IsFileExists` is dead code |
+| 8 | **Info** | `pkg/vercelutil/vercelutil.go:54` | `DeleteCurrentTeam` minifies `config.json` formatting |
+| 9 | **Info** | `main.go:45` | Typo: `swithc` |
+| 10 | **Info** | `main.go:89` | Grammar: "between account" → "between accounts" |
+| 11 | **Info** | `go.mod:1` | Module path references original fork owner |
