@@ -47,34 +47,6 @@ func SetAuthToken(token string) error {
 	return nil
 }
 
-func SetCurrentTeam(teamID string) error {
-	logger.Verbose("SetCurrentTeam(teamID=%s)", teamID)
-
-	filePath, err := ConfigJsonFile()
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("writing currentTeam to %s", filePath)
-
-	fileBytes, err := utils.OpenFile(filePath)
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
-	}
-
-	jsonupd := jsonupdate.NewJsonUpdate(string(fileBytes))
-
-	jsonupd.Set("currentTeam", teamID)
-
-	err = os.WriteFile(filePath, []byte(jsonupd.Pretty()), 0644)
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
-	}
-
-	return nil
-}
 
 func DeleteCurrentTeam() error {
 	logger.Verbose("DeleteCurrentTeam()")

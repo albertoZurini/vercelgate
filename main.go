@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/khanakia/vercelgate/gen/ent"
-	"github.com/khanakia/vercelgate/gen/ent/team"
 	"github.com/khanakia/vercelgate/pkg/constants"
 	"github.com/khanakia/vercelgate/pkg/entcfn"
 	"github.com/khanakia/vercelgate/pkg/entdb"
@@ -39,7 +38,6 @@ func main() {
 	rootCmd.AddCommand(newCmd)
 	rootCmd.AddCommand(resetCmd)
 	rootCmd.AddCommand(switchCmd)
-	rootCmd.AddCommand(switchTeamCmd)
 	rootCmd.AddCommand(pathCmd)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -104,7 +102,7 @@ var switchCmd = &cobra.Command{
 	Short: "Switch between account",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Debug("running switch command")
-		err := SwitchCmd(false)
+		err := SwitchCmd()
 
 		if err != nil {
 			log.Fatal(err)
@@ -114,23 +112,8 @@ var switchCmd = &cobra.Command{
 	},
 }
 
-var switchTeamCmd = &cobra.Command{
-	Use:   "switchteam",
-	Short: "Switch between account and teams",
-	Run: func(cmd *cobra.Command, args []string) {
-		logger.Debug("running switchteam command")
-		err := SwitchCmd(true)
-
-		if err != nil {
-			log.Fatal(err)
-
-			return
-		}
-	},
-}
-
-func SwitchCmd(switchTeam bool) error {
-	logger.Verbose("SwitchCmd(switchTeam=%v)", switchTeam)
+func SwitchCmd() error {
+	logger.Verbose("SwitchCmd()")
 
 	user, err := promptGetUser()
 	if err != nil {
@@ -146,55 +129,10 @@ func SwitchCmd(switchTeam bool) error {
 
 	fmt.Printf("Switched to user %s\n", user.Name)
 
-	if switchTeam {
-		team, err := promptGetTeam(user.ID)
-		if err != nil {
-			return err
-		}
-
-		logger.Debug("selected team: %s (%s)", team.Name, team.ID)
-
-		err = vercelutil.SetCurrentTeam(team.ID)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Switched to team %s\n", team.Name)
-	} else {
-		logger.Debug("clearing currentTeam (no team switch)")
-		vercelutil.DeleteCurrentTeam()
-	}
+	logger.Debug("clearing currentTeam")
+	vercelutil.DeleteCurrentTeam()
 
 	return nil
-}
-
-func promptGetTeam(userID string) (*ent.Team, error) {
-	ctx := context.Background()
-
-	items, err := entdb.Client().Team.Query().Where(team.UserID(userID)).All(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	itemsList := []string{}
-
-	for _, user := range items {
-		itemsList = append(itemsList, user.Name)
-	}
-
-	prompt := promptui.Select{
-		Label: "Select Team",
-		Items: itemsList,
-	}
-
-	index, _, err := prompt.Run()
-
-	if err != nil {
-		return nil, fmt.Errorf("Prompt failed %v\n", err)
-	}
-
-	return items[index], nil
 }
 
 func promptGetUser() (*ent.User, error) {
