@@ -1,6 +1,8 @@
 # vcx
 
-Switch between multiple Vercel accounts without re-logging in — like `kubectx` but for Vercel.
+Switch between multiple Vercel accounts without re-logging in, like `kubectx` but for Vercel.
+
+![demo](assets/vcx-demo.gif)
 
 ## Why
 
@@ -12,21 +14,14 @@ As developers, we often work with clients who share their Vercel accounts instea
 go install github.com/albertoZurini/vcx@main
 ```
 
+> Psst...
+> Don't forget to `export PATH="$PATH:$HOME/go/bin"`
+
 ### Homebrew
 
 ```sh
 brew tap albertoZurini/vcx
 brew install vcx
-```
-
-## Ubuntu
-
-On Ubuntu, Vercel stores its config in `~/.local/share/com.vercel.cli/` instead of `~/.config/com.vercel.cli/`.
-
-Create a symlink so vcx can find it:
-
-```sh
-mkdir -p ~/.config/com.vercel.cli && ln -s ~/.local/share/com.vercel.cli/* ~/.config/com.vercel.cli/
 ```
 
 ---
@@ -58,7 +53,7 @@ vcx sync       # save the new account to vcx
 ```
 
 > [!NOTE]
-> `vcx new` does **not** log you out from the Vercel platform. It only clears the local credential file so the Vercel CLI can accept a new `vercel login`.
+> `vcx new` does **not** log you out from the Vercel platform. It only clears the local credential file so the Vercel CLI can accept a new `vercel login`. `vercel logout` command is also available.
 
 ### Step 3 — Switch between accounts
 
@@ -117,9 +112,3 @@ Switched to Jane Doe
 ## Credits
 
 vcx is a fork of [vercelgate](https://github.com/khanakia/vercelgate) by [@khanakia](https://github.com/khanakia), which provided the original boilerplate for multi-account Vercel credential management. vcx replaces the SQLite/Ent ORM backend with a plain JSON file and drops the team-switching command.
-
----
-
-## TODO
-
-- [ ] Auto-detect Ubuntu config file path
