@@ -5,17 +5,6 @@ version: "3"
 dotenv: [".env"]
 
 tasks:
-  entg:
-    desc: regenerate ent code after we make any edits to `schema/*.go`
-    cmds:
-      - go run ./cmd/entg .
-
-  migrate:
-    desc: run db migration script for against ent scheam
-    # deps: [entg]
-    cmds:
-      - go run ./cmd/dbmigrate
-
   test:
     desc: run all tests
     cmds:

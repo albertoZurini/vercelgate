@@ -1,22 +1,22 @@
 # Architecture
 
-`vercelgate` is a Go CLI tool that manages multiple Vercel account credentials locally, allowing users to switch between accounts without re-running `vercel login`/`vercel logout`.
+`vcx` is a Go CLI tool that manages multiple Vercel account credentials locally, allowing users to switch between accounts without re-running `vercel login`/`vercel logout`.
 
 ---
 
 ## Overview
 
-The tool works by reading and writing the same JSON files that the Vercel CLI uses for authentication (`auth.json`, `config.json`). Accounts are stored in a single JSON file (`vercelgate_accounts.json`) as a list of `{name, data}` entries, where `data` is the raw content of `auth.json` at the time the account was synced. When a user switches accounts, the stored `data` is written back verbatim to `auth.json`; subsequent `vercel` commands then use that token transparently.
+The tool works by reading and writing the same JSON files that the Vercel CLI uses for authentication (`auth.json`, `config.json`). Accounts are stored in a single JSON file (`vcx_accounts.json`) as a list of `{name, data}` entries, where `data` is the raw content of `auth.json` at the time the account was synced. When a user switches accounts, the stored `data` is written back verbatim to `auth.json`; subsequent `vercel` commands then use that token transparently.
 
 ---
 
 ## Directory Layout
 
 ```
-vercelgate/
+vcx/
 ├── main.go                 # CLI entry point — all cobra commands defined here
 └── pkg/
-    ├── accountstore/       # Read/write the vercelgate_accounts.json store
+    ├── accountstore/       # Read/write vcx_accounts.json
     ├── jsonupdate/         # Thin wrapper around tidwall/sjson for JSON patching
     ├── logger/             # Debug/verbose logging + token masking
     ├── utils/              # File I/O helpers
@@ -29,7 +29,7 @@ vercelgate/
 
 ## Data Model
 
-Accounts are stored as a JSON array in `vercelgate_accounts.json`:
+Accounts are stored as a JSON array in `vcx_accounts.json`:
 
 ```json
 [
@@ -58,7 +58,7 @@ type Account struct {
 
 | Store | Path | Permissions | Purpose |
 |-------|------|-------------|---------|
-| `vercelgate_accounts.json` | `<vercel-config-dir>/vercelgate_accounts.json` | `0600` | All saved accounts |
+| `vcx_accounts.json` | `<vercel-config-dir>/vcx_accounts.json` | `0600` | All saved accounts |
 | `auth.json` | `<vercel-config-dir>/auth.json` | `0600` | Active Vercel CLI token (Vercel-owned) |
 | `config.json` | `<vercel-config-dir>/config.json` | `0644` | Active team selection (Vercel-owned) |
 
@@ -70,11 +70,11 @@ The Vercel config directory is resolved via the XDG spec (`pkg/vercelutil/vercel
 
 | Command | Description |
 |---------|-------------|
-| `init` | Creates an empty `vercelgate_accounts.json`; no-ops if the file already exists |
+| `init` | Creates an empty `vcx_accounts.json`; no-ops if the file already exists |
 | `sync` | Reads active `auth.json` → calls Vercel API → upserts account into the JSON store |
 | `new` | Deletes `auth.json` so `vercel login` can create a fresh session |
 | `switch` | Prompts account selection → restores `auth.json` from stored data; clears `currentTeam` |
-| `reset` | Overwrites `vercelgate_accounts.json` with an empty array |
+| `reset` | Overwrites `vcx_accounts.json` with an empty array |
 | `path` | Prints the resolved Vercel config directory |
 
 Global flags `--debug` and `--verbose` enable layered logging via `pkg/logger`.
@@ -97,7 +97,7 @@ auth.json ──os.ReadFile──► rawBytes
                 │
                 └──────────────────► accountstore.AddOrUpdate(name, rawBytes)
                                              │
-                                     vercelgate_accounts.json
+                                     vcx_accounts.json
 ```
 
 ### `switch`
@@ -117,7 +117,7 @@ vercelutil.DeleteCurrentTeam() → removes currentTeam from config.json
 
 | Package | Responsibility |
 |---------|---------------|
-| `accountstore` | Load/save `vercelgate_accounts.json`; `AddOrUpdate`, `All`, `Clear` |
+| `accountstore` | Load/save `vcx_accounts.json`; `AddOrUpdate`, `All`, `Clear` |
 | `vercelapi` | `GetUser` — single HTTP call to `/v2/user`; 15 s timeout |
 | `vercelfn` | Orchestrates sync: read `auth.json` → call API → store account |
 | `vercelutil` | Resolve config dir (XDG); `RestoreAuthJson`; `DeleteCurrentTeam`; `ParseAuthFile` |
@@ -146,5 +146,3 @@ No CGO dependencies — the binary is pure Go and can be cross-compiled without 
 - `task release` — runs `goreleaser release --clean --skip=validate`
 - `.goreleaser.yaml` builds cross-platform binaries (macOS, Linux) and publishes a Homebrew tap.
 - The binary embeds a `version` variable injected by goreleaser at build time (`-X main.version={{.Version}}`).
-
-> **Note:** `Taskfile.yml` still contains stale `entg` and `migrate` tasks that reference deleted Ent/SQLite tooling. These can be removed.
