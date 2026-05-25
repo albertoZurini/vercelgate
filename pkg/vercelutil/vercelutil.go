@@ -98,7 +98,9 @@ func ConfigJsonFile() (string, error) {
 func GetGlobalPathConfig() (string, error) {
 	dirname := "com.vercel.cli"
 
-	dirs := append(xdg.ConfigDirs, xdg.ConfigHome)
+	dirs := []string{xdg.ConfigHome, xdg.DataHome}
+	dirs = append(dirs, xdg.ConfigDirs...)
+	dirs = append(dirs, xdg.DataDirs...)
 
 	logger.Debug("searching for vercel config dir in %d candidate path(s)", len(dirs))
 

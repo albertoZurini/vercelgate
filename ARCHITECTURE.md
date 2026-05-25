@@ -62,7 +62,7 @@ type Account struct {
 | `auth.json` | `<vercel-config-dir>/auth.json` | `0600` | Active Vercel CLI token (Vercel-owned) |
 | `config.json` | `<vercel-config-dir>/config.json` | `0644` | Active team selection (Vercel-owned) |
 
-The Vercel config directory is resolved via the XDG spec (`pkg/vercelutil/vercelutil.go:GetGlobalPathConfig`). On macOS this is typically `~/.config/com.vercel.cli/`.
+The Vercel config directory is resolved via the XDG spec (`pkg/vercelutil/vercelutil.go:GetGlobalPathConfig`). The search order is: `ConfigHome`, `DataHome`, system `ConfigDirs`, system `DataDirs` — first existing directory wins. On macOS this resolves to `~/.config/com.vercel.cli/`; on Linux typically `~/.local/share/com.vercel.cli/`.
 
 ---
 
